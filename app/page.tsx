@@ -14,16 +14,19 @@ export default function Home() {
   const [items, setItems] = useState<Item[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     // Load items from Supabase
     async function loadItems() {
       setIsLoading(true)
+      setError(null)
       try {
         const data = await getSortedItems()
         setItems(data)
-      } catch (error) {
-        console.error("Error loading items:", error)
+      } catch (err) {
+        console.error("Error loading items:", err)
+        setError("Failed to load items. Please try again later.")
       } finally {
         setIsLoading(false)
       }
@@ -85,22 +88,30 @@ export default function Home() {
         </TabsList>
 
         <TabsContent value="all">
-          <ItemsList items={filteredItems} isLoading={isLoading} />
+          <ItemsList items={filteredItems} isLoading={isLoading} error={error} />
         </TabsContent>
 
         <TabsContent value="lost">
-          <ItemsList items={filteredItems.filter((item) => item.type === "lost")} isLoading={isLoading} />
+          <ItemsList items={filteredItems.filter((item) => item.type === "lost")} isLoading={isLoading} error={error} />
         </TabsContent>
 
         <TabsContent value="found">
-          <ItemsList items={filteredItems.filter((item) => item.type === "found")} isLoading={isLoading} />
+          <ItemsList
+            items={filteredItems.filter((item) => item.type === "found")}
+            isLoading={isLoading}
+            error={error}
+          />
         </TabsContent>
       </Tabs>
     </div>
   )
 }
 
-function ItemsList({ items, isLoading }: { items: Item[]; isLoading: boolean }) {
+function ItemsList({ items, isLoading, error }: { items: Item[]; isLoading: boolean; error: string | null }) {
+  if (error) {
+    return <div className="text-center py-8 text-red-500">{error}</div>
+  }
+
   if (isLoading) {
     return <div className="text-center py-8 text-muted-foreground">Loading items...</div>
   }

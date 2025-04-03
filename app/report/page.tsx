@@ -17,6 +17,7 @@ import { addItem } from "@/store/items"
 export default function ReportItem() {
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
   const [itemType, setItemType] = useState<"lost" | "found">("lost")
   const [formData, setFormData] = useState({
     title: "",
@@ -42,25 +43,35 @@ export default function ReportItem() {
     }))
   }
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
+    setSubmitError(null)
 
-    // Add the item to our store
-    addItem({
-      type: itemType,
-      title: formData.title,
-      category: formData.category,
-      date: formData.date,
-      location: formData.location,
-      description: formData.description,
-      contact: formData.contact,
-    })
+    try {
+      // Add the item to Supabase
+      const result = await addItem({
+        type: itemType,
+        title: formData.title,
+        category: formData.category,
+        date: formData.date,
+        location: formData.location,
+        description: formData.description,
+        contact: formData.contact,
+      })
 
-    // Redirect after a short delay
-    setTimeout(() => {
-      router.push(`/submission-success?type=${itemType}`)
-    }, 1000)
+      if (result) {
+        // Redirect after successful submission
+        router.push(`/submission-success?type=${itemType}`)
+      } else {
+        setSubmitError("Failed to submit item. Please try again.")
+        setIsSubmitting(false)
+      }
+    } catch (error) {
+      console.error("Error submitting item:", error)
+      setSubmitError("An error occurred. Please try again later.")
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -73,6 +84,8 @@ export default function ReportItem() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
+        {submitError && <div className="bg-red-50 text-red-500 p-3 rounded-md text-sm">{submitError}</div>}
+
         <div className="space-y-2">
           <Label htmlFor="item-type">Item Type</Label>
           <RadioGroup
@@ -141,7 +154,6 @@ export default function ReportItem() {
             id="description"
             placeholder="Describe the item in detail including color, size, brand, etc."
             rows={4}
-            required
             value={formData.description}
             onChange={handleChange}
           />

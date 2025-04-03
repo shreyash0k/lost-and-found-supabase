@@ -12,15 +12,48 @@ export default function ItemDetailPage() {
   const { id } = useParams()
   const [contactVisible, setContactVisible] = useState(false)
   const [item, setItem] = useState<Item | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (id) {
-      const foundItem = getItemById(Number(id))
-      setItem(foundItem || null)
+    async function loadItem() {
+      if (!id) return
+
+      setIsLoading(true)
+      setError(null)
+
+      try {
+        const itemData = await getItemById(id as string)
+        setItem(itemData)
+        if (!itemData) {
+          setError("Item not found")
+        }
+      } catch (err) {
+        console.error("Error loading item:", err)
+        setError("Failed to load item details. Please try again later.")
+      } finally {
+        setIsLoading(false)
+      }
     }
+
+    loadItem()
   }, [id])
 
-  if (!item) {
+  if (isLoading) {
+    return (
+      <div className="container max-w-md mx-auto px-4 py-8">
+        <div className="flex items-center mb-6">
+          <Link href="/" className="mr-4">
+            <ArrowLeft className="h-6 w-6" />
+          </Link>
+          <h1 className="text-2xl font-bold">Loading...</h1>
+        </div>
+        <div className="text-center py-8 text-muted-foreground">Loading item details...</div>
+      </div>
+    )
+  }
+
+  if (error || !item) {
     return (
       <div className="container max-w-md mx-auto px-4 py-8">
         <div className="flex items-center mb-6">
@@ -30,7 +63,7 @@ export default function ItemDetailPage() {
           <h1 className="text-2xl font-bold">Item Not Found</h1>
         </div>
         <p className="text-center py-8 text-muted-foreground">
-          The item you're looking for doesn't exist or has been removed.
+          {error || "The item you're looking for doesn't exist or has been removed."}
         </p>
         <Link href="/">
           <Button variant="default" className="w-full">
@@ -76,7 +109,7 @@ export default function ItemDetailPage() {
 
           <div className="mb-6">
             <h3 className="font-semibold mb-2">Description</h3>
-            <p className="text-muted-foreground">{item.description}</p>
+            <p className="text-muted-foreground">{item.description || "No description provided."}</p>
           </div>
 
           <div className="mb-6">
